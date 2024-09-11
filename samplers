@@ -1,31 +1,3 @@
-# Generate SBM networks
-generateA <- function(n, pin, pout, props){
-  
-  K <- length(props)
-  
-  P <- matrix(0, nrow=n, ncol=n)
-  
-  idx <- 1
-  # Block probabilities
-  for(k in 1:K){
-    intra <- idx:(idx + n*props[k]-1)
-    inter <- (1:n)[-intra]
-    P[intra, intra] <- pin  # intra-community probs.
-    P[intra, inter] <- pout # inter-community probs.
-    P[inter, intra] <- pout
-    
-    idx =  idx + n*props[k]
-  }
-  
-  A <- matrix(rbinom(n^2, 1, P), ncol=n, nrow=n)
-  
-  A[lower.tri(A, diag=TRUE)] <- 0
-  A = A + base::t(A)
-  
-  return(A)
-}
-
-
 ## NODE
 # Random node, uniform
 node_unif <- function(g, no_nodes){
