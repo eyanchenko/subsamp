@@ -1,0 +1,153 @@
+
+#' @title PACE algorithm for adjacency matrix input
+#' @description This function finds the community labels
+#' @param A adjacency matrix
+#' @param q proportion of network to sub-sample
+#' @param no_comms pre-specified number of communities
+#' @param sampler sampling algorithms
+#' @param B number of iterations to run
+#' @param no_cores number of cores to parallelize algorithms
+#' @return Proportion of sub-samples assigned to the core
+#' @export
+
+pace <- function(A, q=0.10, B=1000, no_comms=2, clustering = cluster_fast_greedy, sampler=node_unif, no_cores = 10, ...){
+  
+  n = dim(A)[1]
+  g <- as.undirected(graph_from_adjacency_matrix(A))
+  
+  apply_fun <- function(i){
+    # sub-sample nodes
+    idx <- sampler(g, round(n*q), ...)
+    idx <- sort(idx)
+    AA   <- A[idx, idx]
+    
+    # re-sample until non-empty matrix is returned
+    while(sum(AA) == 0){
+      idx <- sampler(g, round(n*q), ...)
+      idx <- sort(idx)
+      AA   <- A[idx, idx]
+    }
+    
+    # Run clustering algorithm
+    gg <- as.undirected(graph_from_adjacency_matrix(AA))
+    clust <- clustering(gg)
+
+    # First column is the nodes that were sampled
+    # Second column is their group membership
+    ret_mat = matrix(0, nrow = length(idx), ncol=2)
+    ret_mat[,1] <- idx
+    # ret_mat[,2] <- clust
+    ret_mat[,2] <- clust$membership
+    
+    return(ret_mat)
+  }
+  
+  out <- mclapply(1:B, apply_fun, mc.cores = no_cores)
+  
+  Chat = matrix(0, nrow = n, ncol = n)
+  NN   = matrix(0, nrow = n, ncol = n)
+  
+  for(b in 1:B){
+    K = max(out[[b]][,2])
+    
+    for(k in 1:K){
+      idx = out[[b]][,1][out[[b]][,2] == k]
+      Chat[idx, idx] = Chat[idx, idx] + 1 
+    }
+    
+    idx = out[[b]][,1]
+    NN[idx, idx] = NN[idx, idx] + 1 
+  }
+  # Set tuning parameter tau to be 40th%tile of N
+  tau = quantile(NN[upper.triangle(NN)], 0.4)
+  
+  # Compute final Chat as number of times assigned to same cluster divided by number of times in same sub-sampler
+  Chat = Chat / NN 
+  Chat[NN < tau] <- 0
+  Chat[NN==0] <- 0
+  
+  # # Project Chat to a lower dimension using random projection matrix (Gaussian)
+  # # s = 10*floor(log(n))
+  # # R <- form_matrix(n, s, JLT = F)
+  # # Cproj = Chat %*% R / sqrt(s)
+  # 
+  # # Lastly, must cluster on Chat to get final membership vector
+  # # labels = kmeans(Cproj, no_comms)$cluster
+  # 
+   labels = kmeans(Chat, no_comms)$cluster
+  # 
+   return(labels)
+}
+
+
+
+#' @title PACE algorithm for igraph input
+#' @description This function finds the community labels
+#' @param g graph
+#' @param q proportion of network to sub-sample
+#' @param no_comms pre-specified number of communities
+#' @param sampler sampling algorithms
+#' @param B number of iterations to run
+#' @param no_cores number of cores to parallelize algorithms
+#' @return Proportion of sub-samples assigned to the core
+#' @export
+pace_g <- function(g, q=0.10, B=1000, no_comms=2, clustering = cluster_fast_greedy, sampler=node_unif, no_cores = 10, ...){
+  
+  n = vcount(g)
+  g <- set_vertex_attr(g, name="name", value=1:n)
+
+  apply_fun <- function(i){
+    # sub-sample nodes
+    idx <- sampler(g, round(n*q), ...)
+    idx <- sort(idx)
+    gg <- induced_subgraph(g, idx)
+    
+    # re-sample until non-empty matrix is returned
+    while(ecount(gg) == 0){
+      idx <- sampler(g, round(n*q), ...)
+      idx <- sort(idx)
+      gg <- induced_subgraph(g, idx)
+    }
+    
+    # Run clustering algorithm
+    gg <- as.undirected(gg)
+    clust <- clustering(gg)
+    
+    # First column is the nodes that were sampled
+    # Second column is their group membership
+    ret_mat = matrix(0, nrow = length(idx), ncol=2)
+    ret_mat[,1] <- idx
+    # ret_mat[,2] <- clust
+    ret_mat[,2] <- clust$membership
+    
+    return(ret_mat)
+  }
+  
+  out <- mclapply(1:B, apply_fun, mc.cores = no_cores)
+  
+  Chat = matrix(0, nrow = n, ncol = n)
+  NN   = matrix(0, nrow = n, ncol = n)
+  
+  for(b in 1:B){
+    K = max(out[[b]][,2])
+    
+    for(k in 1:K){
+      idx = out[[b]][,1][out[[b]][,2] == k]
+      Chat[idx, idx] = Chat[idx, idx] + 1 
+    }
+    
+    idx = out[[b]][,1]
+    NN[idx, idx] = NN[idx, idx] + 1 
+  }
+  # Set tuning parameter tau to be 40th%tile of N
+  tau = quantile(NN[upper.triangle(NN)], 0.4)
+  
+  # Compute final Chat as number of times assigned to same cluster divided by number of times in same sub-sampler
+  Chat = Chat / NN 
+  Chat[NN < tau] <- 0
+  Chat[NN==0] <- 0
+  
+  labels = kmeans(Chat, no_comms)$cluster
+  # 
+  return(labels)
+}
