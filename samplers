@@ -1,0 +1,120 @@
+## NODE
+# Random node, uniform
+node_unif <- function(g, no_nodes){
+  n = vcount(g)
+  idx = sample(1:n, no_nodes, replace = FALSE)
+  return(idx)
+}
+
+# Random node, degree
+node_deg <- function(g, no_nodes, probs){
+  
+  idx = rcat(no_nodes, probs)
+  idx = unique(idx)
+  m = length(unique(idx))
+  
+  # Ensure that we have unique nodes
+  while( m < no_nodes){
+    probs[idx] <- 0
+    idx = c(idx, rcat(no_nodes-m, probs))
+    idx = unique(idx)
+    m = length(idx)
+  }
+  
+  return(idx[1:no_nodes])
+  
+}
+
+## EDGE
+# Random edge, uniform
+edge_unif <- function(g, no_nodes){
+  gg <- as_edgelist(g)
+  m  <- dim(gg)[1]
+  
+  # Nodes that are sampled
+  idx <- c()
+  
+  # Keep sampling edges until we have no_node nodes sampled
+  while( length(idx) < no_nodes ){
+    id  = sample(1:m, 1) # Probability of sampling the same edge twice is very low
+    # Even if it happens, no new nodes will be added to set idx
+    # since these nodes were already included
+    idx = c(idx, gg[id, ])
+    idx = unique(idx)
+    
+  }
+  
+  return(idx)
+}
+
+## EXPLORATION
+# Breadth-first search
+bfs_nodes <- function(g, no_nodes){
+  # Randomly select root
+  n = vcount(g)
+  strt = sample(1:n,1)
+  # Keep first no_nodes that are traversed
+  idx = as.numeric(bfs(g, strt)$order[1:no_nodes])
+  
+  return(idx)
+}
+
+# Depth-first search
+dfs_nodes <- function(g, no_nodes){
+  # Randomly select root
+  n = vcount(g)
+  strt = sample(1:n,1)
+  # Keep first no_nodes that are traversed
+  idx = as.numeric(dfs(g, strt)$order[1:no_nodes])
+  
+  return(idx)
+}
+
+# Random node-neighbor
+random_node_neigh <- function(g, no_nodes){
+  gg <- as_edgelist(g)
+  n  <- vcount(g)
+  
+  # Nodes that are sampled
+  idx <- c()
+  
+  # Keep sampling until we have no_node nodes sampled
+  while( length(idx) < no_nodes ){
+    # Random seed node
+    id = sample(1:n, 1)
+    
+    # Find all neighbors of id
+    neighs = unique(as.vector(gg[gg[,1]== id | gg[,2]==id, ]))
+    idx = c(idx, neighs)
+    idx = unique(idx)
+    
+  }
+  
+  if(length(idx) > no_nodes){
+    idx = sample(idx, no_nodes)
+  }
+  
+  return(idx)
+}
+
+# Random walk
+rand_walk <- function(g, no_nodes){
+  # Random starting location
+  n = vcount(g)
+  strt = sample(1:n, 1)
+  
+  idx = as.numeric(random_walk(graph=g, start=strt, steps=no_nodes-1))
+  
+  idx = unique(idx)
+  m = length(idx)
+  
+  while(m < no_nodes){
+    strt = sample(1:n, 1)
+    idx = c(idx, as.numeric(random_walk(graph=g, start=strt, steps=no_nodes-m-1)))
+    idx = unique(idx)
+    m = length(idx)
+  }
+  
+  
+  return(idx)
+}
