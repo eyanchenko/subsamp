@@ -115,20 +115,17 @@ cppFunction('IntegerVector borgattiCpp(IntegerMatrix A){
 }')
 
 
-
-#' @title Core-Periphery sub-sampling algorithm for adjacency matrix input
+#' @title Core-Periphery sub-sampling algorithm (using mclapply)
 #' @description This function finds the CP labels of
 #' a large network using a sub-sampling heuristic
 #' @param A adjacency matrix
 #' @param q proportion of network to sub-sample
 #' @param B number of iterations to run
-#' @param sampler sub-sampling algorithm
-#' @param no_cores number of cores to parellize code
 #' @return Proportion of sub-samples assigned to the core
 #' @export
 
-ssCP <- function(A, q=0.10, B=1000, sampler=node_unif, no_cores = 10, ...){
-  
+ssCP <- function(A, q=0.10, B=1000, sampler=node_unif, no_cores = 9, ...){
+  start1 = proc.time()
   n = dim(A)[1]
   g <- graph_from_adjacency_matrix(A)
   
@@ -144,25 +141,43 @@ ssCP <- function(A, q=0.10, B=1000, sampler=node_unif, no_cores = 10, ...){
     }
     
     # Run Borgatti and Everett algorithm
+    start = proc.time()
     C <- as.logical( borgattiCpp(AA) )
+    end = proc.time()
     
     # return indices of nodes which were assigned to the core
-    return(idx[C])
+    return(list(core=idx[C], time=as.numeric((end-start)[3])))
   }
   
-  out <- unlist(mclapply(1:B, apply_fun, mc.cores = no_cores))
+  
+  out <- mclapply(1:B, apply_fun, mc.cores = no_cores)
+
+  
+  core = out[[1]]$core
+  sub_time = out[[1]]$time/B
+  
+  for(i in 2:B){
+    core = c(core, out[[i]]$core)
+    sub_time = sub_time + out[[i]]$time/B
+  }
   
   # Count number of times each node is assigned to the core
   props = numeric(n)
   
   for(i in 1:n){
-    props[i] = sum(out==i)
+    props[i] = sum(core==i)
   }
   
+  end1 = proc.time()
+  total_time = as.numeric((end1-start1)[3])
+
   # return proportions
-  return(props / B)
+  return(list(props = (props / B), total_time = total_time, sub_time = sub_time))
+  
 }
 
+
+    
 ssCPg <- function(g, q=0.10, B=1000, sampler=node_unif, no_cores = 10, ...){
   
   n = vcount(g)
