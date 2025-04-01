@@ -10,4 +10,6 @@ CPDAC - code to implement the core-periphery divide-and-conquer algorithm from Y
 
 oneshot_com.R, oneshot_CP.R - code to carry out the simulation study from the paper for community and core0periphery detection, respectively
 
+packages.txt - required R version and packages to run the code
+
 
