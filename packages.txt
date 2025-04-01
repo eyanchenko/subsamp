@@ -1,0 +1,16 @@
+A list of all packages and versions needed to run the code.
+
+ ggplot2 3.5.1       
+ reticulate 1.40.0    
+ RColorBrewer 1.1-3   
+ RandPro 0.2.2
+ pROC 1.18.5         
+ LaplacesDemon 16.1.6 
+ igraph 2.1.4         
+ dplyr 1.1.4          
+ doParallel 1.0.17   
+ iterators 1.0.14     
+ foreach 1.5.2        
+ Rcpp 1.0.14         
+ pdfCluster 1.0-4   
+ lattice 0.22-6 
