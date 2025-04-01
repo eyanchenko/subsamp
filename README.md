@@ -12,4 +12,6 @@ oneshot_com.R, oneshot_CP.R - code to carry out the simulation study from the pa
 
 packages.txt - required R version and packages to run the code
 
+CPresults.zip, Comresults.zip - Results from paper used to make plots
+
 
