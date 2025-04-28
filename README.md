@@ -1,6 +1,6 @@
 # subsamp
 
-This repository includes the code for "Graph sub-sampling for divide-and-conquer algorithms in large networks" by Eric Yanchenko.  
+This repository includes the code for "Graph sub-sampling for divide-and-conquer algorithms in large networks" by Eric Yanchenko, accepted at Statistics and Computing.  
 
 samplers - code to implement the various sub-sampling algorithms
 
